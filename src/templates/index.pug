@@ -1,0 +1,12 @@
+include elements/card.pug
+
+
+
+
+body
+    div
+        h1 #{$i18n.message}
+        h2 #{$i18n.nested.msg}
+
+    h3 Ciao Bitch
+    +card($i18n.message, $i18n.nested.msg)
