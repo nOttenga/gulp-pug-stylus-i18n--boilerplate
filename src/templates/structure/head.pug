@@ -1,0 +1,15 @@
+
+mixin head(title, description)
+
+    doctype html
+
+    html
+
+        head
+
+            meta(charset='utf-8')
+
+            title!= title
+
+            meta(name='description', content=description)
+            link(rel='stylesheet', href='../styles/main.min.css')

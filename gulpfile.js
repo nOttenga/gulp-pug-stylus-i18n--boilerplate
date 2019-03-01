@@ -1,12 +1,19 @@
-var gulp     = require('gulp');
-var stylus   = require('gulp-stylus');
-var concat   = require('gulp-concat');
-var uglify   = require('gulp-uglify');
-var rename   = require('gulp-rename');
-var pug      = require('gulp-pug');
-var pugI18n      = require('gulp-i18n-pug');
-var cleanCSS = require('gulp-clean-css');
-var del      = require('del');
+var gulp           = require('gulp');
+var stylus         = require('gulp-stylus');
+var concat         = require('gulp-concat');
+var uglify         = require('gulp-uglify');
+var rename         = require('gulp-rename');
+// var pug         = require('gulp-pug');
+var pugI18n        = require('gulp-i18n-pug');
+var cleanCSS       = require('gulp-clean-css');
+var del            = require('del');
+var postcss        = require('gulp-postcss');
+// var sourcemaps  = require('gulp-sourcemaps');
+var autoprefixer   = require('autoprefixer');
+var lost           = require('lost');
+var imageOptim     = require('gulp-imageoptim');
+var webpack        = require('webpack-stream');
+var htmlbeautify   = require('gulp-html-beautify');
 
 var paths = {
   styles: {
@@ -22,27 +29,33 @@ var paths = {
     src: 'src/templates/*.pug',
     watch: 'src/templates/**/*.pug',
     dest: 'dist/'
+  },
+  i18n: {
+    src: 'src/translations/*.json',
+  },
+  images: {
+    src: 'src/assets/img/**/*',
+    dest: 'dist/assets/img'
   }
 };
 
-/* Not all tasks need to use streams, a gulpfile is just another node program
- * and you can use all packages available on npm, but it must return either a
- * Promise, a Stream or take a callback and call it
- */
+// this is just to delete folders before compiling
 function clean() {
-  // You can use multiple globbing patterns as you would with `gulp.src`,
-  // for example if you are using del 2.0 or above, return its promise
-  return del([ 'dist/styles', 'dist/scripts' ]);
+  return del([ 'dist/styles', 'dist/scripts', 'dist/assets/img' ]);
 }
 
-/*
- * Define our tasks using plain functions
- */
+
 function styles() {
   return gulp.src(paths.styles.src)
-    .pipe(stylus())
+    .pipe(stylus({
+      'include css': true,
+      compress: false
+    }))
+    .pipe(postcss([
+      lost(),
+      autoprefixer()
+    ]))
     .pipe(cleanCSS())
-    // pass in options to the stream
     .pipe(rename({
       basename: 'main',
       suffix: '.min'
@@ -53,6 +66,7 @@ function styles() {
 function scripts() {
   return gulp.src(paths.scripts.src)
         // .pipe(uglify()) // add this in production
+        // .pipe(webpack()) // when webpack will work
         .pipe(gulp.dest(paths.scripts.dest));
 }
 
@@ -65,8 +79,9 @@ function html() {
   const options = {
     i18n: {
       dest: paths.html.dest,
-      locales: `${paths.html.dest}/translations/*.json`,
-      localeExtension: false
+      locales: paths.i18n.src,
+      localeExtension: false,
+      pretty: true
     }
   }
   return gulp.src(paths.html.src)
@@ -74,22 +89,42 @@ function html() {
     .pipe(gulp.dest(paths.html.dest))
 }
 
+
+ 
+function htmlBeautify() {
+  var options = {
+    indentSize: 2
+  };
+  return gulp.src('dist/it/*.html')
+    .pipe(htmlbeautify(options))
+    .pipe(gulp.dest('dist/it/'))
+};
+
+function imagesOptim() {
+  return gulp.src(paths.images.src)
+        .pipe(imageOptim.optimize())
+        .pipe(gulp.dest(paths.images.dest));
+}
+
 function watch() {
   gulp.watch(paths.scripts.src, scripts);
   gulp.watch(paths.styles.watch, styles);
   gulp.watch(paths.html.watch, html);
+  gulp.watch(paths.images.src, imagesOptim);
 }
 
 
-var build = gulp.series(clean, gulp.parallel(styles, scripts, html));
+var build = gulp.series(clean, gulp.parallel(styles, scripts, html, htmlBeautify, imagesOptim));
 
 
-exports.clean = clean;
-exports.styles = styles;
-exports.scripts = scripts;
-exports.html = html;
-exports.watch = watch;
-exports.build = build;
+exports.clean        = clean;
+exports.styles       = styles;
+exports.scripts      = scripts;
+exports.html         = html;
+exports.imagesOptim  = imagesOptim;
+exports.watch        = watch;
+exports.build        = build;
+exports.htmlBeautify = htmlBeautify;
 
 /*
  * Define default task that can be called by just running `gulp` from cli

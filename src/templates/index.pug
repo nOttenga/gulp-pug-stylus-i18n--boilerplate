@@ -1,12 +1,10 @@
-include elements/card.pug
+include structure/head
 
 
 
++head('Italia Super Yachts', 'Quality in the detail')
 
 body
-    div
-        h1 #{$i18n.message}
-        h2 #{$i18n.nested.msg}
-
-    h3 Ciao Bitch
-    +card($i18n.message, $i18n.nested.msg)
+    main
+        include structure/menu
+        
